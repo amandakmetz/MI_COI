@@ -39,9 +39,14 @@ MI_rep_data=MI_rep_data.to_crs("EPSG:6493")
 michigan_data=gpd.read_file("../BlockData/MI_blocks_all_data_full.shp")#, crs="EPSG:6493")
 michigan_data=michigan_data.to_crs("EPSG:6493")
 
-
+    
 
 #____CLEAN DATA______
+for node in graph.nodes:
+    if(np.isnan(graph.nodes[node]["PRES16R"])):
+        graph.nodes[node]["PRES16R"]=0
+    if(np.isnan(graph.nodes[node]["PRES16D"])):
+        graph.nodes[node]["PRES16D"]=0  
 michigan_data[popCol]=michigan_data[popCol].fillna(0) #if we are using tot19 its important to remove nas
 michigan_data=michigan_data.reset_index()
 MI_rep_data=MI_rep_data.reset_index()
@@ -140,7 +145,7 @@ plt.savefig("InitialCongMap")
 
 
 proposal = partial(
-    recom, pop_col=popCol, pop_target=ideal_population, epsilon=0.0005, node_repeats=2
+    recom, pop_col=popCol, pop_target=ideal_population, epsilon=0.001, node_repeats=2
 )
 compactness_bound = constraints.UpperBound(
     lambda p: len(p["cut_edges"]), 2 * len(initial_partition["cut_edges"])
@@ -148,7 +153,7 @@ compactness_bound = constraints.UpperBound(
 chain = MarkovChain(
     proposal=proposal,
     constraints=[
-        constraints.within_percent_of_ideal_population(initial_partition, 0.0005),
+        constraints.within_percent_of_ideal_population(initial_partition, 0.001),
         compactness_bound,  
         # single_flip_contiguous#no_more_discontiguous
     ],
@@ -199,8 +204,7 @@ for part in chain:
                             ]+[COI_UMS["COI"+str(i)] for i in range(len(COIs))]  #number of splits in each COI 
     if(i%50==0):
         fig,ax=plt.subplots(figsize=(10,10))
-        print("Ideal population: ", ideal_population)
-        plt.suptitle("State House Districts in Michigan")
+        plt.suptitle(str(i)+"_Step_Partitition")
         part.plot(michigan_data,ax=ax)
         plt.savefig(str(i)+"_Step_Partitition")
     i+=1
